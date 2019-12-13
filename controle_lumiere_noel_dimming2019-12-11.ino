@@ -46,7 +46,7 @@ volatile int ut_actuel = 0; //temps actuel en microseconde
 
 
 const float pi = 3.1416;
-int valeur_seuil = 150;
+int valeur_seuil = 115; //anciennement 150
 int valeur_min = 600; //valeur du sensor à distance min
 long periode1 = 6000; //en millisecondes
 long periode2 = 6300; //en millisecondes
@@ -69,6 +69,8 @@ int theta1 = 200;           //dephasage ms
 byte flag = 0;
 byte etat = LOW;
 byte etat_deco = LOW;
+byte lecture = LOW;
+byte decision_lue = HIGH;
 
 float thetax =  0;  //selon signe valeur initiale
 int X1 = 0;        //variable fonction de t
@@ -147,33 +149,49 @@ void affichage(int x1, int x2)
 void loop()  { 
   // read the analog in value:
   sensorValue = analogRead(analogInPin);
- 
-  //validation pour changement d'état
-  deltaT2 = tActuel - t4;
-  if(sensorValue > valeur_seuil && deltaT2 > 25){ 
-    t4 = millis();  //temps à partir duquel le signal doit être maintenu pour débuter lecture                  
+
+  //initialisation du compteur lors d'une nouvelle détection
+  if(sensorValue > valeur_seuil && lecture == LOW){
+    t4 = millis();
+    lecture = HIGH;
+    decision_lue = LOW;
+  }
+  
+  //mesure du temps de détection
+  if(sensorValue > valeur_seuil){
+    tActuel = millis();
+    deltaT2 = tActuel - t4;
+  }
+  else{
+    lecture = LOW;
   }
 
-  //changement état lampe
-  if(sensorValue > valeur_seuil && deltaT1 > 1000 && deltaT2 > 20){  
+  //changement état lampe selon le temps de détection
+  if(deltaT2 > 100 && deltaT2 < 800 && lecture == LOW && decision_lue == LOW){
     t1 = millis();
+    decision_lue = HIGH;
     if(etat == LOW){
       etat = HIGH;
+      Serial.println("lampe1:HIGH");
     }
     else{
       etat = LOW;
+      Serial.println("lampe1:LOW");
     }
   }
 
-  //changement état déco
-  if(sensorValue > valeur_seuil && deltaT1 < 1000 && deltaT1 > 500 && deltaT2 > 20){
+  //changement état déco selon temps de détection
+  if(deltaT2 >= 800 && lecture == LOW && decision_lue == LOW){
     t1 = millis();
+    decision_lue = HIGH;
     if(etat_deco == LOW){
       etat_deco = HIGH;
+      Serial.println("deco:HIGH");
     }
     else{
       etat_deco = LOW;
-    }
+      Serial.println("deco:LOW");
+    }    
   }
   
   //Activation de la lampe
